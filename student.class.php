@@ -24,33 +24,34 @@ class Student
 
     public function print_data()
     {
-        $this->data["board_name"]       = $this->db->check("SELECT name FROM boards WHERE id = '" . $this->data["board"] . "'");
-        $this->data["total_grades"]     = $this->db->check("SELECT count(id) FROM grades WHERE student_id = '" . $this->data["id"] . "'");
-        $this->data["average_grade"]    = $this->db->check("SELECT sum(grade)/count(id) FROM grades WHERE student_id = '" . $this->data["id"] . "'");
-        $this->data["all_grades"]       = $this->db->select("SELECT grade FROM grades WHERE student_id = '" . $this->data["id"] . "'");
-
+        $this->data["grades"] = $this->db->select("SELECT grade FROM grades WHERE student_id = '" . $this->data["id"] . "'");
+        $this->data["average"] = array_sum($this->data["grades"]) / count($this->data["grades"]);
 
         if ($this->data["board"] == 1) {
-            $this->data["status"] = $this->data["average_grade"] >= 7 ? "Pass" : "Fail";
+            $this->data["final"] = $this->data["average"] >= 7 ? "Pass" : "Fail";
+            $this->data["grades"] = implode(", ", $this->data["grades"]);
 
             header('Content-Type: application/json');
 
-            $return = array();
-            $return["student"] = $this->data;
-            print json_encode($return, JSON_PRETTY_PRINT);
+            unset($this->data["board"]);
+
+            print json_encode($this->data, JSON_PRETTY_PRINT);
 
         } elseif ($this->data["board"] == 2) {
 
-            if ($this->data["total_grades"] > 2) {
-                sort($this->data["all_grades"]);
-                array_shift($this->data["all_grades"]);
+            if (count($this->data["grades"]) > 2) {
+                sort($this->data["grades"]);
+                array_shift($this->data["grades"]);
             }
-            $this->data["status"] = end($this->data["all_grades"]) > 8 ? "Pass" : "Fail";
+            $this->data["final"] = end($this->data["grades"]) > 8 ? "Pass" : "Fail";
 
-            $this->data["all_grades"] = implode(",", $this->data["all_grades"]);
+            $this->data["grades"] = implode(", ", $this->data["grades"]);
 
 
             header("Content-type: text/xml; charset=utf-8");
+
+            unset($this->data["board"]);
+
             print $this->arrayToXml($this->data, "<student/>");
 
         } else {
